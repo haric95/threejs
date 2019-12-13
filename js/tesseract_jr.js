@@ -1,4 +1,6 @@
 var renderer, scene, camera;
+var tessy;
+var hypercube_geometry, hypercube_material;
 
 // createParticleSphere(360, 10);
 class ortho_matrix {
@@ -21,7 +23,31 @@ class stereo_matrix {
   }
 }
 
-class tessy {
+class zw_rotatation_matrix {
+  constructor(rate) {
+    this.values = math.matrix([
+      [1, 0, 0, 0, 0],
+      [0, 1, 0, 0, 0],
+      [0, 0, Math.cos(rate), -Math.sin(rate), 0],
+      [0, 0, Math.sin(rate), Math.cos(rate), 0],
+      [0, 0, 0, 0, 0]
+    ]);
+  }
+}
+
+class xz_rotatation_matrix {
+  constructor(rate) {
+    this.values = math.matrix([
+      [Math.cos(rate), 0, -Math.sin(rate), 0, 0],
+      [0, 1, 0, 0, 0],
+      [Math.sin(rate), 0, Math.cos(rate), 0, 0],
+      [0, 0, 0, 1, 0],
+      [0, 0, 0, 0, 1]
+    ]);
+  }
+}
+
+class tesseract {
   constructor(size) {
     this.size = size;
     this.vertices3d = [];
@@ -41,9 +67,9 @@ class tessy {
     this.unitvertices4d[9] = [-1, 1, -1, 1, 1];
     this.unitvertices4d[10] = [-1, -1, 1, 1, 1];
     this.unitvertices4d[11] = [1, 1, 1, -1, 1];
-    this.unitvertices4d[12] = [1, -1, 1, 1, 1];
-    this.unitvertices4d[13] = [1, 1, -1, 1, 1];
-    this.unitvertices4d[14] = [1, 1, 1, -1, 1];
+    this.unitvertices4d[12] = [1, 1, -1, 1, 1];
+    this.unitvertices4d[13] = [1, -1, 1, 1, 1];
+    this.unitvertices4d[14] = [-1, 1, 1, 1, 1];
     this.unitvertices4d[15] = [1, 1, 1, 1, 1];
 
     // Map them to the right size
@@ -73,9 +99,25 @@ class tessy {
       this.vertices3d.push(projected.toArray());
     }
   }
+
+  rotate_zw(rate) {
+    let my_matrix = new zw_rotatation_matrix(0.02);
+    for (let i = 0; i < this.vertices4d.length; i++) {
+      let temp = math.multiply(my_matrix.values, this.vertices4d[i]);
+      this.vertices4d[i] = temp.toArray();
+    }
+  }
+
+  rotate_xz(rate) {
+    let my_matrix = new xz_rotatation_matrix(0.02);
+    for (let i = 0; i < this.vertices4d.length; i++) {
+      let temp = math.multiply(my_matrix.values, this.vertices4d[i]);
+      this.vertices4d[i] = temp.toArray();
+    }
+  }
 }
 
-//creates 256x1280 canvas. Sets perspective camera to z = 5 and creates the scene.
+//creates 1920x1080 canvas. Sets perspective camera to z = 5 and creates the scene.
 function setup() {
   const canvas = document.querySelector("#c");
   renderer = new THREE.WebGLRenderer({ canvas });
@@ -85,15 +127,49 @@ function setup() {
   const near = 0.1;
   const far = 10000;
   camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-  camera.position.z = 100;
+  camera.position.z = 50;
   scene = new THREE.Scene();
 }
 
 function testing() {
-  var testeract = new tessy(30);
-  testeract.stereo_project(4);
+  tessy = new tesseract(30);
+  tessy.rotate_zw(0.1);
+  tessy.stereo_project(4);
+  hypercube_geometry = new THREE.Geometry();
+  for (let corner of tessy.vertices3d) {
+    let x = corner[0];
+    let y = corner[1];
+    let z = corner[2];
+
+    hypercube_geometry.vertices.push(new THREE.Vector3(x, y, z));
+  }
+  let points = new THREE.Points(hypercube_geometry, hypercube_material);
+  scene.add(points);
+}
+
+setup();
+testing();
+addLight();
+render();
+
+function addLight() {
+  const color = 0xffff00;
+  const intensity = 1;
+  const light = new THREE.DirectionalLight(color, intensity);
+  light.position.set(10, 10, 10);
+  scene.add(light);
+}
+
+function render(time) {
+  time *= 0.001; // convert time to seconds
+  scene.children[0].rotation.z += 0.01;
+  scene.children[0].rotation.x += 0.01;
+  tessy.rotate_xz(0.002);
+  tessy.rotate_zw(0.02);
+  tessy.stereo_project(4);
+  scene.remove(scene.children[0]);
   var hypercube_geometry = new THREE.Geometry();
-  for (let corner of testeract.vertices3d) {
+  for (let corner of tessy.vertices3d) {
     let x = corner[0];
     let y = corner[1];
     let z = corner[2];
@@ -103,46 +179,6 @@ function testing() {
   let hypercube_material = new THREE.PointsMaterial({ color: 0xeeeeee });
   let points = new THREE.Points(hypercube_geometry, hypercube_material);
   scene.add(points);
-  console.log(scene.children);
-}
-
-setup();
-testing();
-addLight();
-render();
-
-function createStarField(size) {
-  //This will add a starfield to the background of a scene
-  var starsGeometry = new THREE.Geometry();
-
-  for (var i = 0; i < 1000; i++) {
-    let theta = THREE.Math.randFloatSpread(-3.14159, 3.14159);
-    let phi = THREE.Math.randFloatSpread(-3.14159, 3.14159);
-    let r = size + THREE.Math.randFloatSpread(-size / 10, size / 10);
-    var star = new THREE.Vector3();
-    star.x = r * Math.sin(theta) * Math.cos(phi);
-    star.y = r * Math.sin(theta) * Math.sin(phi);
-    star.z = r * Math.cos(phi);
-    starsGeometry.vertices.push(star);
-  }
-
-  var starsMaterial = new THREE.PointsMaterial({ color: 0xeeeeee });
-  var starField = new THREE.Points(starsGeometry, starsMaterial);
-  scene.add(starField);
-}
-
-function addLight() {
-  const color = 0xffffff;
-  const intensity = 1;
-  const light = new THREE.DirectionalLight(color, intensity);
-  light.position.set(-1, 2, 4);
-  scene.add(light);
-}
-
-function render(time) {
-  time *= 0.001; // convert time to seconds
-  scene.children[0].rotation.z += 0.01;
-  scene.children[0].rotation.x += 0.01;
 
   renderer.render(scene, camera);
   requestAnimationFrame(render);
