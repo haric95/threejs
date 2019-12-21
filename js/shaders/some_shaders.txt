@@ -1,0 +1,24 @@
+// Draw a rectangle (origin at bottom left)
+void rect(vec2 st, vec2 origin, float width, float height, out float outputty) {
+    vec2 bl = step(origin, st);
+    float pct = bl.x * bl.y;
+
+    vec2 tr = step(1.0-origin-vec2(width, height), 1.0-st);
+    pct *= tr.x * tr.y;
+    outputty = pct;
+}
+
+// Draw the outline of a rectangle
+void rect_line(vec2 st, vec2 origin, vec2 size, vec2 linewidth, out float outputty_line) {
+    float a_rect;
+    float a_smaller_rect;
+    rect(st, origin, size, a_rect);
+    rect(st, origin+linewidth, size-2.0*linewidth, a_smaller_rect);
+    outputty_line = a_rect * 1.0-a_smaller_rect;
+}
+
+// Draw a circle, center at origin.
+void circle(vec2 st, vec2 origin, float radius, float smoothing, out float outputty) {
+    outputty = smoothstep(radius, radius+smoothing, distance(st, origin));
+}
+

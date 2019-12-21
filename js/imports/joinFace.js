@@ -25,6 +25,20 @@ export function joinCube([i1, i2, i3, i4, i5, i6, i7, i8]) {
   return faces;
 }
 
+function joinOuterCube([i1, i2, i3, i4, i5, i6, i7, i8]) {
+  let facesIndex = [
+    [i1, i2, i6, i5],
+    [i2, i3, i7, i6],
+    [i4, i3, i7, i8],
+    [i1, i4, i5, i8]
+  ];
+  let faces = [];
+  for (let faceIndex of facesIndex) {
+    faces.push(joinQuad(faceIndex));
+  }
+  return faces;
+}
+
 export function joinTesseract(
   i0,
   i1,
@@ -54,8 +68,11 @@ export function joinTesseract(
     [i7, i6, i2, i3, i15, i14, i10, i11]
   ];
   let cubes = [];
-  for (let cubeIndex of cubesIndex) {
-    cubes.push(joinCube(cubeIndex));
+  for (let i = 0; i < 2; i++) {
+    cubes.push(joinCube(cubesIndex[i]));
+  }
+  for (let i = 2; i < 8; i++) {
+    cubes.push(joinOuterCube(cubesIndex[i]));
   }
   return cubes;
 }

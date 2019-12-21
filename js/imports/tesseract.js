@@ -47,7 +47,6 @@ export class tesseract {
       14,
       15
     );
-    console.log(someCubes);
 
     for (let cube of someCubes) {
       for (let quad of cube) {
